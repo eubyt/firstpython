@@ -1,28 +1,60 @@
+import sqlite3
 import getpass
 import os
+import sys
 
-accounts_list = [
-        {
-            'agency': '4789-3',
-            'password': '123456',
-            'name': 'Fellipe Popoviche',
-            'value': 1500,
-            'admin': True
-        },
-        {
-            'agency': '1234-5', 
-            'password': '654321',
-            'name': 'João silva',
-            'value': 450,
-            'admin': False
-        }
-    ]
+sql = sqlite3.connect('agencias.db')
+comandos_sql = sql.cursor()
 
 money_slips = {
     '20': 5,
     '50': 5,
     '100': 5,
 }
+
+if os.path.getsize ('agencias.db') > 100:
+    print('Tabela existe [ OK ]')
+else:
+    comandos_sql.execute("""
+        CREATE TABLE agencias (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        agency VARCHAR(20) NOT NULL,
+        password VARCHAR(20) NOT NULL,
+        name VARCHAR(20) NOT NULL,
+        value VARCHAR(20) NOT NULL,
+        admin VARCHAR(5) NOT NULL
+);
+""")
+
+
+#    {
+#            'agency': '4789-3',
+#            'password': '123456',
+#            'name': 'Fellipe Popoviche',
+#            'value': 1500,
+#            'admin': True
+#        },
+#        {
+#            'agency': '1234-5', 
+#            'password': '654321',
+#            'name': 'João silva',
+#            'value': 450,
+#            'admin': False
+#        }
+
+    usuarios =[
+     ( '4789-3', '123456', 'Fellipe Popoviche', '1500', 'True'),
+     ('1234-5', '654321', 'João silva', '450', 'False')
+    ]
+
+    comandos_sql.executemany("""
+INSERT INTO agencias (agency, password, name, value, admin)
+VALUES (?, ?, ?, ?, ?)
+""", usuarios)
+
+    sql.commit()
+
+    print('Tabelas criada com sucesso.')
 
 while True:
     print("**************************************")
@@ -32,55 +64,31 @@ while True:
     account_typed = input("enter your account: ")
     password_typed = getpass.getpass("enter your password: ")
 
-    ### method w/ dicionaries
+    comandos_sql.execute('SELECT * FROM agencias WHERE agency=?',  (account_typed,))
 
-    ## agency, password, name, value
-
-    #accounts_list = {
-    #    '4789-3': {
-    #        'password': '123456',
-    #        'name': 'Fellipe Popoviche',
-    #        'value': 0
-    #    },
-    #    '1234-5': {
-    #        'password': '654321',
-    #        'name': 'João silva',
-    #        'value': 0
-    #    }
-    #}
-
-    #if account_typed in accounts_list and password_typed == accounts_list[account_typed]['password']:
-    #    print("Valid account " + "\n" + "Your account: " + account_typed + "\n" + "Your password: " + password_typed
-    #        + "\n" + "Your name: " + accounts_list[account_typed]['name'])
-    #else: 
-    #    print('Invalid account')    
+    resultado =  comandos_sql.fetchone()
 
     flag = False
-    for account in accounts_list:
-        if account_typed == account['agency'] and password_typed == account['password']:
-            os.system('cls' if os.name == 'nt' else 'clear')
-            flag = True
+    
+    if resultado == None:
+        flag = True    
+    else:
+       if password_typed == resultado[2]:
+           os.system('cls' if os.name == 'nt' else 'clear')
 
-            print("                                      ")
-            print("**************************************")
-            print("***     Cash Machine - Fellipe     ***")
-            print("**************************************")
-            print("                                      ")
-            print("1 - Bank balance")
-            print("2 - Cash out")
-            if account['admin']:
-                print("10 - Include banknotes")
-            option_typed = input('Choose an option: ')
+           print("                                      ")
+           print("**************************************")
+           print("***     Cash Machine - Fellipe     ***")
+           print("**************************************")
+           print("                                      ")
+           print("1 - Bank balance")
+           print("2 - Cash out")
 
-            if option_typed == '1':
-                print('Your balance: $%s' % account['value'])
-            elif option_typed == '10' and account['admin']:
-                amount_typed = input('Type the quantity of banknotes: ')
-                banknote_typed = input('Type the banknote to be include: $')
-                #money_slips[banknote_typed] = money_slips[banknote_typed] + int(amount_typed) 
-                money_slips[banknote_typed] += int(amount_typed)
-                print(money_slips)
-            elif option_typed == '2':
+           option_typed = input('Choose an option: ')
+
+           if option_typed == '1':
+               print('Your balance: $%s' % resultado[4])
+           elif option_typed == '2':
                 value_typed = input('Enter the amount to be withdrawn: $')
 
                 money_slips_user = {}
@@ -106,8 +114,16 @@ while True:
                     print('Take banknotes')
                     print(money_slips_user)    
 
-    if not flag:
-        print("Invalid account")  
 
-    input("Press <enter> to continue: ") #PAUSE PROGRAMM       
-    os.system('cls' if os.name == 'nt' else 'clear')
+           input("Press <enter> to continue: ") #PAUSE PROGRAMM 
+           sql.close()   
+           sys.exit()   
+       else:
+           flag = True 
+
+    if flag == True:
+        print("Invalid account")  
+        input("Press <enter> to continue: ") #PAUSE PROGRAMM       
+        os.system('cls' if os.name == 'nt' else 'clear')
+
+sql.close()        
